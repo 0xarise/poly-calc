@@ -450,10 +450,11 @@
       </div>
 
       <div class="field">
-        <label>Launch Price (USD)</label>
-        <input type="range" id="launchPrice" min="0.05" max="5" step="0.05" value="0.50" oninput="calc(); updateRangeLabels()">
-        <div class="range-val" id="launchPriceVal">$0.50</div>
-        <div class="range-labels"><span>$0.05</span><span>Launch price</span><span>$5.00</span></div>
+        <label>FDV at Launch (Fully Diluted Valuation)</label>
+        <div class="hint">ICE round = $9B FDV. Most tokens list below last round.</div>
+        <input type="range" id="fdvB" min="0.5" max="15" step="0.5" value="5" oninput="calc(); updateRangeLabels()">
+        <div class="range-val" id="fdvVal">$5B FDV → <span id="impliedPriceSpan">$0.50</span>/token</div>
+        <div class="range-labels"><span>$0.5B</span><span style="color:#a78bfa">$9B = ICE round</span><span>$15B</span></div>
       </div>
     </div>
   </div>
@@ -465,7 +466,7 @@
       <table id="scenarioTable">
         <thead>
           <tr>
-            <th>Launch Price</th>
+            <th>FDV at Launch</th>
             <th>3% alloc</th>
             <th>5% alloc</th>
             <th>7.5% alloc</th>
@@ -489,8 +490,8 @@
             <th>Percentile</th>
             <th>Top %</th>
             <th>Tier</th>
-            <th>5% alloc @ $0.50</th>
-            <th>7.5% alloc @ $1.00</th>
+            <th>5% alloc @ $3B FDV</th>
+            <th>7.5% alloc @ $9B FDV</th>
           </tr>
         </thead>
         <tbody id="benchBody"></tbody>
@@ -623,7 +624,8 @@ function calc() {
   const markets     = parseFloat(document.getElementById('markets').value)    || 0;
   const communityPct = parseFloat(document.getElementById('communityPct').value);
   const totalSupply  = parseFloat(document.getElementById('totalSupply').value);
-  const launchPrice  = parseFloat(document.getElementById('launchPrice').value);
+  const fdvB         = parseFloat(document.getElementById('fdvB').value);
+  const impliedPrice = fdvB / totalSupply;  // e.g. $5B FDV / 10B tokens = $0.50/token
 
   const { mid, low, high } = estimatePOLY(volume, lp, markets, communityPct, totalSupply);
 
@@ -634,8 +636,8 @@ function calc() {
   // Update result card
   document.getElementById('polyMid').textContent   = fmt(mid) + ' POLY';
   document.getElementById('polyRange').textContent = `range: ${fmt(low)} – ${fmt(high)}`;
-  document.getElementById('usdValue').textContent  = fmtUSD(mid * launchPrice);
-  document.getElementById('usdSub').textContent    = `at $${launchPrice.toFixed(2)} launch price (mid estimate)`;
+  document.getElementById('usdValue').textContent  = fmtUSD(mid * impliedPrice);
+  document.getElementById('usdSub').textContent    = `at $${impliedPrice.toFixed(3)}/token (FDV $${fdvB}B, mid estimate)`;
   document.getElementById('statPct').textContent   = pct.toFixed(1) + 'th';
   document.getElementById('statTop').textContent   = 'Top ' + top + '%';
   document.getElementById('statTier').textContent  = tier.label;
@@ -656,28 +658,37 @@ function calc() {
   }
 
   // Share text
-  const usd = mid * launchPrice;
-  const shareText = `Estimated $POLY airdrop: ${fmt(mid)} tokens (~${fmtUSD(usd)}) at $${launchPrice.toFixed(2)} launch\n\nTop ${top}% of Polymarket users (${tier.label})\n\n$${(volume/1000).toFixed(0)}K volume | ${markets} markets traded\n\nCheck yours → [link]\n\n🐜 @shadowquant_eth`;
+  const usd = mid * impliedPrice;
+  const shareText = `Estimated $POLY airdrop: ${fmt(mid)} tokens (~${fmtUSD(usd)}) at $${fdvB}B FDV\n\nTop ${top}% of Polymarket users (${tier.label})\n\n$${(volume/1000).toFixed(0)}K volume | ${markets} markets traded\n\nCheck yours → [link]\n\n🐜 @shadowquant_eth`;
   document.getElementById('shareText').textContent = shareText;
   document.getElementById('shareBox').style.display = mid > 0 ? 'block' : 'none';
 
   // Scenario table
-  renderScenarioTable(volume, lp, markets, totalSupply, launchPrice);
+  renderScenarioTable(volume, lp, markets, totalSupply, fdvB);
   renderBenchmarks(communityPct, totalSupply);
 }
 
-function renderScenarioTable(volume, lp, markets, totalSupply, launchPriceCurrent) {
-  const prices = [0.05, 0.10, 0.25, 0.50, 1.00, 2.00, 5.00];
+function renderScenarioTable(volume, lp, markets, totalSupply, fdvBCurrent) {
+  // FDV scenarios — price = fdvB / totalSupply
+  const fdvScenarios = [
+    { fdv: 1,  label: '$1B FDV' },
+    { fdv: 2,  label: '$2B FDV' },
+    { fdv: 3,  label: '$3B FDV' },
+    { fdv: 5,  label: '$5B FDV' },
+    { fdv: 9,  label: '$9B FDV ← ICE round' },
+    { fdv: 12, label: '$12B FDV' },
+    { fdv: 15, label: '$15B FDV' },
+  ];
   const allocs = [3, 5, 7.5, 10, 15];
-  const highlighted = 7.5;
   let html = '';
-  for (const p of prices) {
-    const isHighlight = Math.abs(p - launchPriceCurrent) < 0.001;
+  for (const s of fdvScenarios) {
+    const impliedP = s.fdv / totalSupply;
+    const isHighlight = Math.abs(s.fdv - fdvBCurrent) < 0.26;
     html += `<tr${isHighlight ? ' class="highlight"' : ''}>`;
-    html += `<td>${isHighlight ? '→ ' : ''}$${p.toFixed(2)}</td>`;
+    html += `<td>${isHighlight ? '→ ' : ''}${s.label}<br><span style="color:#3d4463;font-size:12px">$${impliedP.toFixed(3)}/token</span></td>`;
     for (const a of allocs) {
       const { mid } = estimatePOLY(volume, lp, markets, a, totalSupply);
-      const usd = mid * p;
+      const usd = mid * impliedP;
       const cls = usd > 50000 ? 'green' : usd > 5000 ? 'yellow' : 'red';
       html += `<td class="${cls}">${fmtUSD(usd)}</td>`;
     }
@@ -695,6 +706,9 @@ function renderBenchmarks(communityPct, totalSupply) {
     [500000,    'Whale'],
     [1000000,   'Top Whale'],
   ];
+  // Reference FDV points for benchmarks: $3B conservative, $9B = ICE round
+  const price3B = 3 / totalSupply;   // implied price at $3B FDV
+  const price9B = 9 / totalSupply;   // implied price at $9B FDV
   let html = '';
   for (const [vol, label] of benchmarks) {
     const pct  = getPercentile(vol);
@@ -704,12 +718,12 @@ function renderBenchmarks(communityPct, totalSupply) {
     const { mid: mid75 }  = estimatePOLY(vol, 0, 0, 7.5, totalSupply);
     const isUs = vol === 100000;
     html += `<tr${isUs ? ' class="highlight"' : ''}>`;
-    html += `<td>${isUs ? '→ ' : ''}<strong>$${(vol/1000).toFixed(0)}K</strong> ${label}</td>`;
+    html += `<td>${isUs ? '→ ' : ''}<strong>$${vol >= 1000000 ? (vol/1000000).toFixed(1)+'M' : (vol/1000).toFixed(0)+'K'}</strong> ${label}</td>`;
     html += `<td>${pct.toFixed(0)}th</td>`;
     html += `<td>Top ${top}%</td>`;
     html += `<td style="color:${tier.color}">${tier.label}</td>`;
-    html += `<td>${fmtUSD(mid5 * 0.5)}</td>`;
-    html += `<td class="green">${fmtUSD(mid75 * 1.0)}</td>`;
+    html += `<td>${fmtUSD(mid5 * price3B)}</td>`;
+    html += `<td class="green">${fmtUSD(mid75 * price9B)}</td>`;
     html += '</tr>';
   }
   document.getElementById('benchBody').innerHTML = html;
@@ -718,10 +732,13 @@ function renderBenchmarks(communityPct, totalSupply) {
 function updateRangeLabels() {
   document.getElementById('communityPctVal').textContent =
     document.getElementById('communityPct').value + '% of supply';
+  const totalSupply = parseFloat(document.getElementById('totalSupply').value);
   document.getElementById('totalSupplyVal').textContent =
-    document.getElementById('totalSupply').value + 'B tokens';
-  document.getElementById('launchPriceVal').textContent =
-    '$' + parseFloat(document.getElementById('launchPrice').value).toFixed(2);
+    totalSupply + 'B tokens';
+  const fdvB = parseFloat(document.getElementById('fdvB').value);
+  const impliedPrice = fdvB / totalSupply;
+  document.getElementById('fdvVal').innerHTML =
+    `$${fdvB}B FDV → <span id="impliedPriceSpan" style="color:#22c55e">$${impliedPrice.toFixed(3)}</span>/token`;
 }
 
 function copyShare() {
