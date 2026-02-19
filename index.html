@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>$POLY Airdrop Calculator</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #1a1a24;
+      --border: #2a2a3a;
+      --accent: #7c5cfc;
+      --accent2: #a78bfa;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      padding: 0 16px 80px;
+    }
+
+    /* — HEADER — */
+    .header {
+      text-align: center;
+      padding: 48px 0 32px;
+    }
+    .header .badge {
+      display: inline-block;
+      background: rgba(124,92,252,.18);
+      color: var(--accent2);
+      border: 1px solid rgba(124,92,252,.4);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 15px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+    .header .sub {
+      color: var(--muted);
+      font-size: 16px;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+    .header .sub a { color: var(--accent2); text-decoration: none; }
+
+    /* — GRID — */
+    .container { max-width: 900px; margin: 0 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+    /* — CARD — */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card-title {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* — INPUTS — */
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: .04em;
+    }
+    .field .hint {
+      font-size: 16px;
+      color: #3d4463;
+      margin-bottom: 6px;
+    }
+    .input-wrap { position: relative; }
+    .input-wrap .prefix {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 16px;
+    }
+    input[type=number], input[type=range] {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 16px;
+      padding: 12px 14px 12px 30px;
+      outline: none;
+      transition: border-color .2s;
+      -moz-appearance: textfield;
+    }
+    input[type=number]:focus { border-color: var(--accent); }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    input[type=range] {
+      padding: 0;
+      height: 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      background: var(--bg3);
+      border: none;
+    }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 16px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .range-val {
+      text-align: center;
+      font-size: 15px;
+      color: var(--accent2);
+      margin-top: 4px;
+    }
+
+    /* — ASSUMPTIONS — */
+    .assumptions summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 15px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 14px 0 4px;
+      list-style: none;
+      user-select: none;
+    }
+    .assumptions summary::before { content: '▶ '; }
+    .assumptions[open] summary::before { content: '▼ '; }
+    .assumptions .inner {
+      padding: 16px 0 0;
+      display: grid;
+      gap: 14px;
+    }
+
+    /* — RESULT — */
+    .result-card {
+      background: linear-gradient(135deg, rgba(124,92,252,.12) 0%, rgba(167,139,250,.06) 100%);
+      border: 1px solid rgba(124,92,252,.3);
+      border-radius: 16px;
+      padding: 28px;
+      margin: 24px 0;
+    }
+    .result-card .result-title {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--accent2);
+      margin-bottom: 20px;
+    }
+    .poly-amount {
+      font-size: clamp(36px, 7vw, 64px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    .poly-range {
+      font-size: 15px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .usd-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--green);
+      margin-top: 16px;
+    }
+    .usd-sub { font-size: 16px; color: var(--muted); margin-top: 4px; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .stat {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat .val { font-size: 22px; font-weight: 700; }
+    .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: .06em; text-transform: uppercase; }
+
+    /* — SCENARIO TABLE — */
+    .scenario-section { margin-top: 32px; }
+    .scenario-section h2 {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+    thead tr { background: var(--bg3); }
+    th {
+      padding: 12px 16px;
+      text-align: right;
+      font-size: 16px;
+      letter-spacing: .08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    th:first-child { text-align: left; }
+    td {
+      padding: 11px 16px;
+      text-align: right;
+      border-top: 1px solid var(--border);
+    }
+    td:first-child { text-align: left; color: var(--muted); font-size: 16px; }
+    tr.highlight td { background: rgba(124,92,252,.08); }
+    tr.highlight td:first-child { color: var(--accent2); }
+    .green { color: var(--green); }
+    .yellow { color: var(--yellow); }
+    .red { color: var(--muted); }
+
+    /* — PERCENTILE BADGE — */
+    .pct-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34,197,94,.1);
+      border: 1px solid rgba(34,197,94,.3);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 15px;
+      color: var(--green);
+      margin-top: 16px;
+    }
+    .pct-badge.mid {
+      background: rgba(234,179,8,.1);
+      border-color: rgba(234,179,8,.3);
+      color: var(--yellow);
+    }
+    .pct-badge.low {
+      background: rgba(100,116,139,.1);
+      border-color: rgba(100,116,139,.3);
+      color: var(--muted);
+    }
+
+    /* — SHARE CTA — */
+    .share-box {
+      margin-top: 24px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .share-box .share-text {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+    .copy-btn {
+      margin-top: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-family: var(--mono);
+      font-size: 15px;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .copy-btn:hover { opacity: .85; }
+    .copy-btn.copied { background: var(--green); }
+
+    /* — FOOTER — */
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    .footer a {
+      color: var(--accent2);
+      text-decoration: none;
+      font-size: 15px;
+    }
+    .footer .disclaimer {
+      font-size: 16px;
+      color: #2d3050;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    /* — PROGRESS BAR — */
+    .progress-track {
+      height: 6px;
+      background: var(--bg3);
+      border-radius: 3px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 3px;
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="badge">🐜 by @shadowquant_eth</div>
+    <h1>$POLY Airdrop<br>Calculator</h1>
+    <p class="sub">
+      Polymarket CMO confirmed: "There will be a token, there will be an airdrop."<br>
+      Est. community allocation: <strong>$450M–$900M</strong> at $9B FDV.<br>
+      Check your position. <a href="https://x.com/shadowquant_eth" target="_blank">@shadowquant_eth</a>
+    </p>
+  </div>
+
+  <!-- RESULT (lives at top so mobile users see it immediately) -->
+  <div class="result-card" id="resultCard">
+    <div class="result-title">// Your Estimated Allocation</div>
+    <div class="poly-amount" id="polyMid">0 POLY</div>
+    <div class="poly-range" id="polyRange">range: 0 – 0</div>
+    <div class="usd-value" id="usdValue">$0</div>
+    <div class="usd-sub" id="usdSub">at $0.00 launch price</div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="val" id="statPct">—</div>
+        <div class="lbl">Percentile</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="statTop">—</div>
+        <div class="lbl">Top %</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="statTier">—</div>
+        <div class="lbl">Tier</div>
+      </div>
+    </div>
+
+    <div id="pctBadge" class="pct-badge low">Enter your trading data below</div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <!-- SHARE -->
+    <div class="share-box" id="shareBox" style="display:none">
+      <div class="share-text" id="shareText"></div>
+      <button class="copy-btn" id="copyBtn" onclick="copyShare()">Copy & Tweet 🐜</button>
+    </div>
+  </div>
+
+  <!-- INPUTS + ASSUMPTIONS -->
+  <div class="grid2">
+
+    <!-- YOUR DATA -->
+    <div class="card">
+      <div class="card-title">// Your Polymarket Activity</div>
+
+      <div class="field">
+        <label>Trading Volume (USDC)</label>
+        <div class="hint">Total historical volume on Polymarket. Find in your profile.</div>
+        <div class="input-wrap">
+          <span class="prefix">$</span>
+          <input type="number" id="volume" value="10000" min="0" oninput="calc()">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>LP Rewards Earned (USDC)</label>
+        <div class="hint">From Market Rewards program. $1 = top 3% of users.</div>
+        <div class="input-wrap">
+          <span class="prefix">$</span>
+          <input type="number" id="lpRewards" value="0" min="0" oninput="calc()">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Unique Markets Traded</label>
+        <div class="hint">More markets = more diversity bonus (estimated).</div>
+        <div class="input-wrap">
+          <span class="prefix">#</span>
+          <input type="number" id="markets" value="20" min="0" oninput="calc()">
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSUMPTIONS -->
+    <div class="card">
+      <div class="card-title">// Model Assumptions</div>
+
+      <div class="field">
+        <label>Community Allocation</label>
+        <input type="range" id="communityPct" min="3" max="15" step="0.5" value="7.5" oninput="calc(); updateRangeLabels()">
+        <div class="range-val" id="communityPctVal">7.5% of supply</div>
+        <div class="range-labels"><span>3%</span><span>Conservative → Generous</span><span>15%</span></div>
+      </div>
+
+      <div class="field">
+        <label>Total Supply (billion tokens)</label>
+        <input type="range" id="totalSupply" min="1" max="20" step="1" value="10" oninput="calc(); updateRangeLabels()">
+        <div class="range-val" id="totalSupplyVal">10B tokens</div>
+        <div class="range-labels"><span>1B</span><span>Supply</span><span>20B</span></div>
+      </div>
+
+      <div class="field">
+        <label>Launch Price (USD)</label>
+        <input type="range" id="launchPrice" min="0.05" max="5" step="0.05" value="0.50" oninput="calc(); updateRangeLabels()">
+        <div class="range-val" id="launchPriceVal">$0.50</div>
+        <div class="range-labels"><span>$0.05</span><span>Launch price</span><span>$5.00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENARIO TABLE -->
+  <div class="scenario-section">
+    <h2>// Scenario Matrix — Your Volume</h2>
+    <div class="table-wrap">
+      <table id="scenarioTable">
+        <thead>
+          <tr>
+            <th>Launch Price</th>
+            <th>3% alloc</th>
+            <th>5% alloc</th>
+            <th>7.5% alloc</th>
+            <th>10% alloc</th>
+            <th>15% alloc</th>
+          </tr>
+        </thead>
+        <tbody id="scenarioBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BENCHMARKS -->
+  <div class="scenario-section">
+    <h2>// Volume Benchmarks (PolycoolApp data)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Volume</th>
+            <th>Percentile</th>
+            <th>Top %</th>
+            <th>Tier</th>
+            <th>5% alloc @ $0.50</th>
+            <th>7.5% alloc @ $1.00</th>
+          </tr>
+        </thead>
+        <tbody id="benchBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <a href="https://x.com/shadowquant_eth" target="_blank">Built by @shadowquant_eth 🐜</a><br>
+    <a href="https://polymarket.com" target="_blank" style="color: var(--muted); font-size:13px; margin-top:4px; display:inline-block">Trade on Polymarket</a>
+    <div class="disclaimer">
+      ⚠️ This calculator is purely speculative. No official tokenomics have been announced by Polymarket.<br>
+      Community allocation %, total supply, and distribution formula are UNKNOWN — these are analyst estimates.<br>
+      Polymarket has stated there will be a token and airdrop (CMO, Oct 2025). No snapshot date confirmed.<br>
+      Not financial advice. DYOR. 🐜
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────────
+
+// Percentile curve based on PolycoolApp data:
+// $100K volume = top 5% (confirmed), rest interpolated log-normally
+const VOL_CURVE = [
+  [0,       0],
+  [50,      30],
+  [200,     50],
+  [1000,    70],
+  [5000,    83],
+  [25000,   91],
+  [100000,  95],  // ← confirmed data point
+  [500000,  98],
+  [2000000, 99.5],
+];
+
+// LP rewards: $1 = top 3% (confirmed), interpolate
+const LP_CURVE = [
+  [0,    0],
+  [0.5,  90],
+  [1,    97],   // ← confirmed data point
+  [10,   99],
+  [100,  99.9],
+];
+
+function interpolate(val, curve) {
+  if (val <= curve[0][0]) return curve[0][1];
+  if (val >= curve[curve.length-1][0]) return curve[curve.length-1][1];
+  for (let i = 1; i < curve.length; i++) {
+    if (val <= curve[i][0]) {
+      const [x0, y0] = curve[i-1];
+      const [x1, y1] = curve[i];
+      const t = Math.log(val/x0) / Math.log(x1/x0);
+      return y0 + t * (y1 - y0);
+    }
+  }
+  return 100;
+}
+
+// ─── CORE MODEL ────────────────────────────────────────────────────────────
+// Estimation model:
+// - Platform total volume ~$15B (includes elections 2024, ongoing)
+// - User's share proportional to volume + bonuses
+// - LP rewards: significant multiplier (official rewards program)
+// - Market diversity: small bonus for breadth
+
+const TOTAL_PM_VOLUME = 15_000_000_000;
+const TOTAL_PM_USERS  = 750_000;        // estimated active wallets
+
+function estimatePOLY(volume, lp, markets, communityPct, totalSupplyB) {
+  const totalSupply     = totalSupplyB * 1_000_000_000;
+  const communityTokens = totalSupply * (communityPct / 100);
+
+  // Volume share (main factor)
+  const volShare  = Math.min(volume / TOTAL_PM_VOLUME, 0.01); // cap at 1%
+
+  // LP bonus (LP rewards = guaranteed early commitment signal)
+  // $1 in LP = top 3% → large multiplier
+  const lpBonus   = lp > 0 ? Math.log10(lp + 1) * 0.0005 : 0;
+
+  // Market diversity bonus (breadth signals engagement)
+  const mktBonus  = Math.min(markets / 10000, 0.0001);
+
+  // Combined share (volume is ~75% weight, lp ~20%, markets ~5%)
+  const rawShare  = volShare * 0.75 + lpBonus * 0.20 + mktBonus * 0.05;
+
+  // Apply a slight "early user" equalizer — thin tail gets boosted
+  // (most airdrops don't go 100% proportional, they tier it)
+  const boosted = rawShare > 0 ? rawShare * Math.pow(rawShare * TOTAL_PM_USERS, -0.15) : 0;
+
+  const polyMid   = communityTokens * boosted;
+  const polyLow   = polyMid * 0.5;   // conservative
+  const polyHigh  = polyMid * 2.5;   // optimistic
+
+  return { mid: polyMid, low: polyLow, high: polyHigh };
+}
+
+function getPercentile(volume) {
+  return interpolate(volume, VOL_CURVE);
+}
+
+function getTier(pct) {
+  if (pct >= 99) return { label: 'T1 ELITE', color: '#f59e0b' };
+  if (pct >= 97) return { label: 'T2 WHALE', color: '#a78bfa' };
+  if (pct >= 95) return { label: 'T3 POWER', color: '#22c55e' };
+  if (pct >= 88) return { label: 'T4 ACTIVE', color: '#3b82f6' };
+  if (pct >= 70) return { label: 'T5 CASUAL', color: '#64748b' };
+  return { label: 'T6 LIGHT', color: '#374151' };
+}
+
+function fmt(n) {
+  if (n >= 1_000_000) return (n/1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000)     return (n/1_000).toFixed(1) + 'K';
+  return Math.round(n).toLocaleString();
+}
+
+function fmtUSD(n) {
+  if (n >= 1_000_000) return '$' + (n/1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000)     return '$' + (n/1_000).toFixed(1) + 'K';
+  return '$' + Math.round(n).toLocaleString();
+}
+
+// ─── CALC ──────────────────────────────────────────────────────────────────
+
+function calc() {
+  const volume      = parseFloat(document.getElementById('volume').value)    || 0;
+  const lp          = parseFloat(document.getElementById('lpRewards').value)  || 0;
+  const markets     = parseFloat(document.getElementById('markets').value)    || 0;
+  const communityPct = parseFloat(document.getElementById('communityPct').value);
+  const totalSupply  = parseFloat(document.getElementById('totalSupply').value);
+  const launchPrice  = parseFloat(document.getElementById('launchPrice').value);
+
+  const { mid, low, high } = estimatePOLY(volume, lp, markets, communityPct, totalSupply);
+
+  const pct  = getPercentile(volume);
+  const top  = (100 - pct).toFixed(1);
+  const tier = getTier(pct);
+
+  // Update result card
+  document.getElementById('polyMid').textContent   = fmt(mid) + ' POLY';
+  document.getElementById('polyRange').textContent = `range: ${fmt(low)} – ${fmt(high)}`;
+  document.getElementById('usdValue').textContent  = fmtUSD(mid * launchPrice);
+  document.getElementById('usdSub').textContent    = `at $${launchPrice.toFixed(2)} launch price (mid estimate)`;
+  document.getElementById('statPct').textContent   = pct.toFixed(1) + 'th';
+  document.getElementById('statTop').textContent   = 'Top ' + top + '%';
+  document.getElementById('statTier').textContent  = tier.label;
+  document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
+
+  // Percentile badge
+  const badge = document.getElementById('pctBadge');
+  badge.className = 'pct-badge';
+  if (pct >= 90) {
+    badge.className += ' ';
+    badge.textContent = `🔥 Top ${top}% of all Polymarket users`;
+  } else if (pct >= 70) {
+    badge.className += ' mid';
+    badge.textContent = `⚡ Top ${top}% of all Polymarket users`;
+  } else {
+    badge.className += ' low';
+    badge.textContent = `📊 ${pct.toFixed(0)}th percentile — trade more to boost allocation`;
+  }
+
+  // Share text
+  const usd = mid * launchPrice;
+  const shareText = `Estimated $POLY airdrop: ${fmt(mid)} tokens (~${fmtUSD(usd)}) at $${launchPrice.toFixed(2)} launch\n\nTop ${top}% of Polymarket users (${tier.label})\n\n$${(volume/1000).toFixed(0)}K volume | ${markets} markets traded\n\nCheck yours → [link]\n\n🐜 @shadowquant_eth`;
+  document.getElementById('shareText').textContent = shareText;
+  document.getElementById('shareBox').style.display = mid > 0 ? 'block' : 'none';
+
+  // Scenario table
+  renderScenarioTable(volume, lp, markets, totalSupply, launchPrice);
+  renderBenchmarks(communityPct, totalSupply);
+}
+
+function renderScenarioTable(volume, lp, markets, totalSupply, launchPriceCurrent) {
+  const prices = [0.05, 0.10, 0.25, 0.50, 1.00, 2.00, 5.00];
+  const allocs = [3, 5, 7.5, 10, 15];
+  const highlighted = 7.5;
+  let html = '';
+  for (const p of prices) {
+    const isHighlight = Math.abs(p - launchPriceCurrent) < 0.001;
+    html += `<tr${isHighlight ? ' class="highlight"' : ''}>`;
+    html += `<td>${isHighlight ? '→ ' : ''}$${p.toFixed(2)}</td>`;
+    for (const a of allocs) {
+      const { mid } = estimatePOLY(volume, lp, markets, a, totalSupply);
+      const usd = mid * p;
+      const cls = usd > 50000 ? 'green' : usd > 5000 ? 'yellow' : 'red';
+      html += `<td class="${cls}">${fmtUSD(usd)}</td>`;
+    }
+    html += '</tr>';
+  }
+  document.getElementById('scenarioBody').innerHTML = html;
+}
+
+function renderBenchmarks(communityPct, totalSupply) {
+  const benchmarks = [
+    [100,       'Entry-level'],
+    [1000,      'Casual'],
+    [10000,     'Active'],
+    [100000,    'Power User ✓'],
+    [500000,    'Whale'],
+    [1000000,   'Top Whale'],
+  ];
+  let html = '';
+  for (const [vol, label] of benchmarks) {
+    const pct  = getPercentile(vol);
+    const top  = (100 - pct).toFixed(1);
+    const tier = getTier(pct);
+    const { mid: mid5 }   = estimatePOLY(vol, 0, 0, 5, totalSupply);
+    const { mid: mid75 }  = estimatePOLY(vol, 0, 0, 7.5, totalSupply);
+    const isUs = vol === 100000;
+    html += `<tr${isUs ? ' class="highlight"' : ''}>`;
+    html += `<td>${isUs ? '→ ' : ''}<strong>$${(vol/1000).toFixed(0)}K</strong> ${label}</td>`;
+    html += `<td>${pct.toFixed(0)}th</td>`;
+    html += `<td>Top ${top}%</td>`;
+    html += `<td style="color:${tier.color}">${tier.label}</td>`;
+    html += `<td>${fmtUSD(mid5 * 0.5)}</td>`;
+    html += `<td class="green">${fmtUSD(mid75 * 1.0)}</td>`;
+    html += '</tr>';
+  }
+  document.getElementById('benchBody').innerHTML = html;
+}
+
+function updateRangeLabels() {
+  document.getElementById('communityPctVal').textContent =
+    document.getElementById('communityPct').value + '% of supply';
+  document.getElementById('totalSupplyVal').textContent =
+    document.getElementById('totalSupply').value + 'B tokens';
+  document.getElementById('launchPriceVal').textContent =
+    '$' + parseFloat(document.getElementById('launchPrice').value).toFixed(2);
+}
+
+function copyShare() {
+  const text = document.getElementById('shareText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied!';
+    btn.className = 'copy-btn copied';
+    setTimeout(() => {
+      btn.textContent = 'Copy & Tweet 🐜';
+      btn.className = 'copy-btn';
+    }, 2000);
+  });
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+updateRangeLabels();
+calc();
+</script>
+</body>
+</html>
